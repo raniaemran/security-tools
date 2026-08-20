@@ -2,6 +2,7 @@
 """
 File Integrity Checker
 Monitors directory for file changes using SHA-256 hashes
+Sends email alerts when changes are detected
 """
 
 import os
@@ -10,6 +11,14 @@ import json
 import hashlib
 import argparse
 from datetime import datetime
+
+try:
+    from email_alerts import send_alert
+except ImportError:
+    print("⚠️  email_alerts.py not found. Email alerts disabled.")
+    def send_alert(subject, body):
+        print(f"📧 [ALERT] {subject}")
+        return False
 
 def sha256_file(filepath):
     """Calculate SHA-256 hash of a file"""
@@ -67,27 +76,61 @@ def check_integrity(baseline_file, directory, exclude=None):
     
     print(f"\n🔍 Checking integrity...\n")
     changes_found = False
+    changed_files = {"new": [], "modified": [], "deleted": []}
     
     # Check for new and modified files
     for rel_path, cur_hash in current.items():
         if rel_path not in baseline:
             print(f"🆕 NEW: {rel_path}")
+            changed_files["new"].append(rel_path)
             changes_found = True
         elif baseline[rel_path] != cur_hash:
             print(f"🔄 MODIFIED: {rel_path}")
+            changed_files["modified"].append(rel_path)
             changes_found = True
     
     # Check for deleted files
     for rel_path in baseline:
         if rel_path not in current:
             print(f"🗑️  DELETED: {rel_path}")
+            changed_files["deleted"].append(rel_path)
             changes_found = True
     
     if not changes_found:
         print("✅ No changes detected - system is clean!")
     else:
-        print(f"\n⚠️  ALERT: {sum(1 for _ in changes_found if changes_found)} changes detected!")
-        print("🔒 Investigate immediately!")
+        # Count total changes
+        total_changes = len(changed_files["new"]) + len(changed_files["modified"]) + len(changed_files["deleted"])
+        print(f"\n⚠️  ALERT: {total_changes} changes detected!")
+        
+        # ===== EMAIL ALERT =====
+        alert_body = "🚨 File Integrity Alert!\n\n"
+        alert_body += f"Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+        alert_body += f"Directory: {directory}\n\n"
+        
+        if changed_files["new"]:
+            alert_body += "🆕 New Files:\n"
+            for f in changed_files["new"][:10]:
+                alert_body += f"  - {f}\n"
+            if len(changed_files["new"]) > 10:
+                alert_body += f"  ... and {len(changed_files['new']) - 10} more\n"
+        
+        if changed_files["modified"]:
+            alert_body += "\n🔄 Modified Files:\n"
+            for f in changed_files["modified"][:10]:
+                alert_body += f"  - {f}\n"
+            if len(changed_files["modified"]) > 10:
+                alert_body += f"  ... and {len(changed_files['modified']) - 10} more\n"
+        
+        if changed_files["deleted"]:
+            alert_body += "\n🗑️  Deleted Files:\n"
+            for f in changed_files["deleted"][:10]:
+                alert_body += f"  - {f}\n"
+            if len(changed_files["deleted"]) > 10:
+                alert_body += f"  ... and {len(changed_files['deleted']) - 10} more\n"
+        
+        send_alert("File Integrity Alert", alert_body)
+        print("📧 Email alert sent!")
 
 def main():
     parser = argparse.ArgumentParser(description="Monitor file integrity using SHA-256")
