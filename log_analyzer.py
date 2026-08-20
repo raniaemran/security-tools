@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 """
 Automated Log Analysis Script
-Detects suspicious activities in system logs
+Detects suspicious activities in system logs with desktop alerts
 """
 
 import re
 import sys
 import argparse
+import subprocess
 from collections import Counter
 from datetime import datetime
 
-def parse_auth_log(log_file, threshold=5):
+def parse_auth_log(log_file):
     """Parse auth.log for failed SSH attempts"""
     ip_pattern = re.compile(r"Failed password for .* from (\d+\.\d+\.\d+\.\d+)")
     user_pattern = re.compile(r"Failed password for (?:invalid user )?([a-zA-Z0-9_]+) from")
@@ -35,12 +36,25 @@ def parse_auth_log(log_file, threshold=5):
     
     return failed_ips, failed_users
 
+def send_alert(ip, count, user):
+    """Send desktop notification about suspicious activity"""
+    try:
+        # Desktop notification (works on Ubuntu/GNOME)
+        subprocess.run([
+            'notify-send',
+            '🚨 Security Alert!',
+            f'IP {ip} had {count} failed SSH attempts targeting user {user}'
+        ], timeout=2, stderr=subprocess.DEVNULL)
+    except:
+        pass  # Silently fail if notification isn't available
+
 def analyze_failures(ips, users, threshold):
     """Analyze and flag suspicious activities"""
     ip_counts = Counter(ips)
     user_counts = Counter(users)
     
-    print(f"\n📊 Analysis Results\n{'='*50}")
+    print(f"\n📊 Analysis Results")
+    print("=" * 50)
     
     # Flag IPs with excessive failures
     suspicious_ips = {ip: count for ip, count in ip_counts.items() 
@@ -50,8 +64,11 @@ def analyze_failures(ips, users, threshold):
         print(f"\n⚠️  ALERT: Suspicious activity detected!\n")
         print("IP Address          Failed Attempts")
         print("-" * 40)
+        top_user = user_counts.most_common(1)[0][0] if user_counts else "unknown"
         for ip, count in sorted(suspicious_ips.items(), key=lambda x: x[1], reverse=True):
             print(f"{ip:20s} {count}")
+            # Send desktop alert for each suspicious IP
+            send_alert(ip, count, top_user)
     else:
         print("\n✅ No suspicious IPs detected")
     
@@ -68,6 +85,9 @@ def analyze_failures(ips, users, threshold):
     print(f"Unique IPs: {len(ip_counts)}")
     print(f"Unique users targeted: {len(user_counts)}")
     print(f"Alert threshold: {threshold} attempts")
+    
+    if suspicious_ips:
+        print(f"\n🚨 Desktop alerts sent for {len(suspicious_ips)} suspicious IPs!")
 
 def main():
     parser = argparse.ArgumentParser(description="Analyze system logs for suspicious activity")
@@ -77,7 +97,7 @@ def main():
     args = parser.parse_args()
     
     print(f"🔍 Analyzing {args.log_file}...")
-    ips, users = parse_auth_log(args.log_file, args.threshold)
+    ips, users = parse_auth_log(args.log_file)
     analyze_failures(ips, users, args.threshold)
 
 if __name__ == "__main__":
