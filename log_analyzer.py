@@ -1,15 +1,29 @@
 #!/usr/bin/env python3
 """
 Automated Log Analysis Script
-Detects suspicious activities in system logs with desktop alerts
+Detects suspicious activities in system logs
+Sends email and Telegram alerts
 """
 
 import re
 import sys
 import argparse
-import subprocess
 from collections import Counter
 from datetime import datetime
+
+# Import alert modules
+try:
+    from email_alerts import send_alert
+except ImportError:
+    def send_alert(subject, body):
+        print(f"📧 [ALERT] {subject}")
+        return False
+
+try:
+    from telegram_alerts import send_telegram
+except ImportError:
+    def send_telegram(msg):
+        print(f"📲 [Telegram] {msg}")
 
 def parse_auth_log(log_file):
     """Parse auth.log for failed SSH attempts"""
@@ -36,25 +50,12 @@ def parse_auth_log(log_file):
     
     return failed_ips, failed_users
 
-def send_alert(ip, count, user):
-    """Send desktop notification about suspicious activity"""
-    try:
-        # Desktop notification (works on Ubuntu/GNOME)
-        subprocess.run([
-            'notify-send',
-            '🚨 Security Alert!',
-            f'IP {ip} had {count} failed SSH attempts targeting user {user}'
-        ], timeout=2, stderr=subprocess.DEVNULL)
-    except:
-        pass  # Silently fail if notification isn't available
-
 def analyze_failures(ips, users, threshold):
     """Analyze and flag suspicious activities"""
     ip_counts = Counter(ips)
     user_counts = Counter(users)
     
-    print(f"\n📊 Analysis Results")
-    print("=" * 50)
+    print(f"\n📊 Analysis Results\n{'='*50}")
     
     # Flag IPs with excessive failures
     suspicious_ips = {ip: count for ip, count in ip_counts.items() 
@@ -64,11 +65,38 @@ def analyze_failures(ips, users, threshold):
         print(f"\n⚠️  ALERT: Suspicious activity detected!\n")
         print("IP Address          Failed Attempts")
         print("-" * 40)
-        top_user = user_counts.most_common(1)[0][0] if user_counts else "unknown"
         for ip, count in sorted(suspicious_ips.items(), key=lambda x: x[1], reverse=True):
             print(f"{ip:20s} {count}")
-            # Send desktop alert for each suspicious IP
-            send_alert(ip, count, top_user)
+        
+        # ===== EMAIL ALERT =====
+        alert_body = "🚨 SSH Brute-Force Attack Detected!\n\n"
+        alert_body += f"Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+        alert_body += "Suspicious IPs (failed attempts):\n"
+        alert_body += "-" * 40 + "\n"
+        for ip, count in sorted(suspicious_ips.items(), key=lambda x: x[1], reverse=True):
+            alert_body += f"{ip:20s} {count} attempts\n"
+        
+        alert_body += f"\nTotal failed attempts: {len(ips)}"
+        alert_body += f"\nUnique IPs: {len(ip_counts)}"
+        alert_body += f"\nThreshold: {threshold} attempts"
+        
+        send_alert("SSH Brute-Force Detected", alert_body)
+        
+        # ===== TELEGRAM ALERT =====
+        telegram_msg = f"""
+🚨 <b>SSH BRUTE-FORCE DETECTED</b>
+
+<b>Suspicious IPs:</b>
+{chr(10).join([f"  • <code>{ip}</code> - {count} attempts" for ip, count in list(suspicious_ips.items())[:5]])}
+
+<b>Total attempts:</b> {len(ips)}
+<b>Unique IPs:</b> {len(ip_counts)}
+<b>Users targeted:</b> {', '.join([user for user, _ in user_counts.most_common(3)])}
+
+🛡️ <i>Take action immediately!</i>
+"""
+        send_telegram(telegram_msg)
+        
     else:
         print("\n✅ No suspicious IPs detected")
     
@@ -85,9 +113,6 @@ def analyze_failures(ips, users, threshold):
     print(f"Unique IPs: {len(ip_counts)}")
     print(f"Unique users targeted: {len(user_counts)}")
     print(f"Alert threshold: {threshold} attempts")
-    
-    if suspicious_ips:
-        print(f"\n🚨 Desktop alerts sent for {len(suspicious_ips)} suspicious IPs!")
 
 def main():
     parser = argparse.ArgumentParser(description="Analyze system logs for suspicious activity")
