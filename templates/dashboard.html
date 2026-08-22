@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛡️ Security Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0e17;
+            color: #c8d6e5;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #00ff88;
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .card {
+            background: #141b2d;
+            border: 1px solid #1a2744;
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+        .card:hover {
+            border-color: #00ff88;
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.1);
+        }
+        .card h3 {
+            color: #00ff88;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        input[type="text"],
+        input[type="number"] {
+            flex: 1;
+            padding: 10px;
+            background: #0a0e17;
+            border: 1px solid #1a2744;
+            border-radius: 6px;
+            color: #c8d6e5;
+            font-size: 14px;
+            min-width: 80px;
+        }
+        input:focus {
+            outline: none;
+            border-color: #00ff88;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            color: #0a0e17;
+        }
+        .btn-primary {
+            background: #00ff88;
+        }
+        .btn-primary:hover {
+            background: #00cc6a;
+            transform: scale(1.02);
+        }
+        .btn-danger {
+            background: #ff4757;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #cc3744;
+            transform: scale(1.02);
+        }
+        .btn-warning {
+            background: #ffa502;
+            color: #0a0e17;
+        }
+        .btn-warning:hover {
+            background: #cc8400;
+            transform: scale(1.02);
+        }
+        .btn-info {
+            background: #1e90ff;
+            color: white;
+        }
+        .btn-info:hover {
+            background: #1873cc;
+            transform: scale(1.02);
+        }
+        pre {
+            background: #0a0e17;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 12px;
+            max-height: 250px;
+            overflow-y: auto;
+            color: #a0b0c0;
+            border: 1px solid #1a2744;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .alerts-section {
+            background: #141b2d;
+            border: 1px solid #1a2744;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .alerts-section h2 {
+            color: #00ff88;
+            margin-bottom: 15px;
+        }
+        .alert-item {
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            border-left: 4px solid;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .alert-danger {
+            background: rgba(255, 71, 87, 0.15);
+            border-left-color: #ff4757;
+        }
+        .alert-warning {
+            background: rgba(255, 165, 2, 0.15);
+            border-left-color: #ffa502;
+        }
+        .alert-success {
+            background: rgba(0, 255, 136, 0.15);
+            border-left-color: #00ff88;
+        }
+        .alert-info {
+            background: rgba(0, 150, 255, 0.15);
+            border-left-color: #0096ff;
+        }
+        .alert-time {
+            color: #7f8fa6;
+            font-size: 12px;
+        }
+        .stats {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        .stat-box {
+            background: #141b2d;
+            padding: 15px 25px;
+            border-radius: 8px;
+            border: 1px solid #1a2744;
+        }
+        .stat-box span {
+            color: #7f8fa6;
+            font-size: 14px;
+        }
+        .stat-box strong {
+            color: #00ff88;
+            font-size: 24px;
+            display: block;
+        }
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8rem;
+            }
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            .input-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛡️ Security Dashboard</h1>
+
+        <div class="stats">
+            <div class="stat-box">
+                <span>Total Alerts</span>
+                <strong id="alertCount">{{ alerts|length }}</strong>
+            </div>
+            <div class="stat-box">
+                <span>Status</span>
+                <strong style="color: #00ff88;">🟢 Active</strong>
+            </div>
+            <div class="stat-box">
+                <span>Server Time</span>
+                <strong id="serverTime">Loading...</strong>
+            </div>
+        </div>
+
+        <div class="grid">
+            <!-- Port Scanner -->
+            <div class="card">
+                <h3>🔍 Port Scanner</h3>
+                <div class="input-group">
+                    <input type="text" id="target" placeholder="Target IP" value="127.0.0.1">
+                    <input type="text" id="ports" placeholder="Ports" value="20-25">
+                </div>
+                <button class="btn btn-primary" onclick="runScan()">🚀 Scan</button>
+                <pre id="scanOutput">Ready to scan...</pre>
+            </div>
+
+            <!-- Log Analyzer -->
+            <div class="card">
+                <h3>📋 Log Analyzer</h3>
+                <div class="input-group">
+                    <input type="number" id="threshold" placeholder="Threshold" value="5">
+                </div>
+                <button class="btn btn-warning" onclick="runLogAnalyzer()">📊 Analyze</button>
+                <pre id="logOutput">Ready to analyze...</pre>
+            </div>
+
+            <!-- Integrity Checker -->
+            <div class="card">
+                <h3>🔒 Integrity Checker</h3>
+                <div class="input-group">
+                    <input type="text" id="directory" placeholder="Directory" value="/home/rania/Documents">
+                    <input type="text" id="baseline" placeholder="Baseline" value="baseline.json">
+                </div>
+                <button class="btn btn-primary" onclick="runIntegrity()">🛡️ Check</button>
+                <pre id="integrityOutput">Ready to check...</pre>
+            </div>
+
+            <!-- Auto-Remediation -->
+            <div class="card">
+                <h3>🛡️ Auto-Remediation</h3>
+                <p style="color: #7f8fa6; font-size: 14px; margin-bottom: 10px;">
+                    Blocks IPs with >5 failed attempts
+                </p>
+                <button class="btn btn-danger" onclick="runRemediation()">🚫 Block Attackers</button>
+                <button class="btn btn-warning" onclick="showBlocked()">📋 List Blocked</button>
+                <pre id="remediationOutput">Ready to block attackers...</pre>
+            </div>
+
+            <!-- CVE Lookup -->
+            <div class="card">
+                <h3>🔍 CVE Vulnerability Lookup</h3>
+                <div class="input-group">
+                    <input type="text" id="cveService" placeholder="Service" value="OpenSSH">
+                    <input type="text" id="cveVersion" placeholder="Version" value="10.2">
+                </div>
+                <button class="btn btn-info" onclick="runCVE()">🔎 Check CVEs</button>
+                <pre id="cveOutput">Ready to check vulnerabilities...</pre>
+            </div>
+        </div>
+
+        <!-- Alerts -->
+        <div class="alerts-section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap;">
+                <h2>🔔 Live Alerts</h2>
+                <button class="btn btn-danger" onclick="clearAlerts()">🗑️ Clear All</button>
+            </div>
+            <div id="alertsContainer">
+                {% if alerts %}
+                    {% for alert in alerts %}
+                    <div class="alert-item alert-{{ alert.type }}">
+                        <div>
+                            <span class="alert-title">{{ alert.title }}</span>
+                            {{ alert.message }}
+                        </div>
+                        <span class="alert-time">{{ alert.time }}</span>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p style="color: #7f8fa6;">No alerts yet. Run a tool to generate alerts!</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Update server time
+        function updateTime() {
+            document.getElementById('serverTime').textContent = new Date().toLocaleTimeString();
+        }
+        setInterval(updateTime, 1000);
+        updateTime();
+
+        // --- Port Scanner ---
+        function runScan() {
+            const target = document.getElementById('target').value;
+            const ports = document.getElementById('ports').value;
+            document.getElementById('scanOutput').textContent = '⏳ Scanning...';
+            fetch('/api/scan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ target, ports })
+                })
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('scanOutput').textContent = data.output;
+                    if (data.status === 'success') location.reload();
+                })
+                .catch(error => {
+                    document.getElementById('scanOutput').textContent = '❌ Error: ' + error;
+                });
+        }
+
+        // --- Log Analyzer ---
+        function runLogAnalyzer() {
+            const threshold = document.getElementById('threshold').value;
+            document.getElementById('logOutput').textContent = '⏳ Analyzing logs...';
+            fetch('/api/logs', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ threshold })
+                })
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('logOutput').textContent = data.output;
+                    if (data.status === 'success') location.reload();
+                })
+                .catch(error => {
+                    document.getElementById('logOutput').textContent = '❌ Error: ' + error;
+                });
+        }
+
+        // --- Integrity Checker ---
+        function runIntegrity() {
+            const directory = document.getElementById('directory').value;
+            const baseline = document.getElementById('baseline').value;
+            document.getElementById('integrityOutput').textContent = '⏳ Checking integrity...';
+            fetch('/api/integrity', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ directory, baseline })
+                })
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('integrityOutput').textContent = data.output;
+                    if (data.status === 'success') location.reload();
+                })
+                .catch(error => {
+                    document.getElementById('integrityOutput').textContent = '❌ Error: ' + error;
+                });
+        }
+
+        // --- Auto-Remediation ---
+        function runRemediation() {
+            document.getElementById('remediationOutput').textContent = '⏳ Blocking attackers...';
+            fetch('/api/remediate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                })
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('remediationOutput').textContent = data.output;
+                    if (data.status === 'success') location.reload();
+                })
+                .catch(error => {
+                    document.getElementById('remediationOutput').textContent = '❌ Error: ' + error;
+                });
+        }
+
+        function showBlocked() {
+            document.getElementById('remediationOutput').textContent = '⏳ Loading blocked IPs...';
+            fetch('/api/blocked')
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('remediationOutput').textContent = data.output;
+                })
+                .catch(error => {
+                    document.getElementById('remediationOutput').textContent = '❌ Error: ' + error;
+                });
+        }
+
+        // --- CVE Lookup ---
+        function runCVE() {
+            const service = document.getElementById('cveService').value;
+            const version = document.getElementById('cveVersion').value;
+            document.getElementById('cveOutput').textContent = '⏳ Checking CVEs...';
+            fetch('/api/cve', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ service, version })
+                })
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('cveOutput').textContent = data.output;
+                    if (data.status === 'success') location.reload();
+                })
+                .catch(error => {
+                    document.getElementById('cveOutput').textContent = '❌ Error: ' + error;
+                });
+        }
+
+        // --- Clear Alerts ---
+        function clearAlerts() {
+            if (confirm('Clear all alerts?')) {
+                fetch('/api/clear_alerts', { method: 'POST' })
+                    .then(() => location.reload());
+            }
+        }
+
+        // --- Auto-refresh alerts ---
+        setInterval(() => {
+            fetch('/api/alerts')
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('alertCount').textContent = data.alerts.length;
+                });
+        }, 30000);
+
+        // --- Keyboard Shortcuts ---
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 's') { e.preventDefault();
+                runScan(); }
+            if (e.ctrlKey && e.key === 'l') { e.preventDefault();
+                runLogAnalyzer(); }
+            if (e.ctrlKey && e.key === 'i') { e.preventDefault();
+                runIntegrity(); }
+            if (e.ctrlKey && e.key === 'r') { e.preventDefault();
+                runRemediation(); }
+            if (e.ctrlKey && e.key === 'c') { e.preventDefault();
+                runCVE(); }
+        });
+    </script>
+</body>
+</html>
